@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Учебный план</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..700&family=Unbounded:wght@600..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* --- палитра: тёмный фон + неоновый зелёный акцент --- */
+  --bg-base:#0A100D; --bg-surface:#121C18; --bg-surface-elevated:#16241F;
+  --accent-primary:#34D399; --accent-secondary:#2DD4BF;
+  --text-primary:#E8FBF2; --text-muted:#7FA396;
+  --error:#F87171; --success:var(--accent-primary);
+  /* --- типографика --- */
+  --font-body:'Golos Text',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-display:'Unbounded',var(--font-body);
+  /* --- семантические алиасы, которыми пользуется вся вёрстка --- */
+  --bg:var(--bg-base); --surface:var(--bg-surface); --surface2:var(--bg-surface-elevated);
+  --border:rgba(52,211,153,.14);
+  --ink:var(--text-primary); --ink2:#A9CBBD; --muted:var(--text-muted);
+  --accent:var(--accent-primary); --accent-weak:rgba(52,211,153,.12);
+  --bad:var(--error); --bad-weak:rgba(248,113,113,.13);
+  --on-accent:#06140E;
+  --shadow:inset 0 0 0 1px rgba(52,211,153,.10), 0 10px 30px rgba(0,0,0,.45);
+  --glow:0 0 14px rgba(52,211,153,.30), 0 0 34px rgba(52,211,153,.12), inset 0 0 0 1px rgba(52,211,153,.22);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);position:relative;
+  font:15px/1.5 var(--font-body);
+  padding:0 0 108px;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(65% 42% at 12% -4%, rgba(52,211,153,.12), transparent 70%),
+    radial-gradient(55% 40% at 104% 14%, rgba(45,212,191,.10), transparent 70%),
+    radial-gradient(90% 55% at 50% 108%, rgba(52,211,153,.07), transparent 72%)}
+h1,h2,h3{margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+header{padding:16px 0 8px;display:flex;align-items:center;gap:10px}
+header .logo{font-size:24px}
+header h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
+header .pill{margin-left:auto;background:var(--accent-weak);color:var(--accent);
+  font-family:var(--font-display);font-weight:700;font-size:13px;padding:6px 13px;border-radius:20px;
+  white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1px rgba(52,211,153,.25)}
+
+/* нижняя капсульная навигация */
+.bottomnav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:60;
+  display:flex;gap:6px;align-items:center;width:calc(100% - 28px);max-width:440px;
+  background:var(--bg-surface-elevated);border-radius:30px;padding:7px;
+  box-shadow:0 0 20px rgba(52,211,153,.22),0 12px 34px rgba(0,0,0,.55),inset 0 0 0 1px rgba(52,211,153,.16)}
+.navbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;
+  border:0;background:transparent;color:var(--text-muted);border-radius:24px;cursor:pointer;
+  font-family:var(--font-body);font-weight:700;font-size:14px;transition:.22s ease}
+.navbtn .ni{font-size:20px;line-height:1}
+.navbtn .nl{display:none}
+.navbtn.active{flex:1.7;background:var(--accent-primary);color:var(--on-accent);
+  box-shadow:0 0 18px rgba(52,211,153,.55)}
+.navbtn.active .nl{display:inline}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card.hero{box-shadow:var(--glow);border-color:rgba(52,211,153,.22)}
+.card h2{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.card h2 .sub{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+
+/* hero overall */
+.hero{text-align:center;padding:20px 16px 22px}
+.hero .big{font-family:var(--font-display);font-size:50px;font-weight:800;letter-spacing:-1px;line-height:1;
+  color:var(--accent);font-variant-numeric:tabular-nums;filter:drop-shadow(0 0 10px rgba(52,211,153,.45))}
+.hero .big small{font-size:24px;font-weight:700}
+.hero .sub2{font-size:14px;color:var(--ink2);margin-top:6px;font-weight:600}
+
+/* path line */
+.path{margin-top:20px}
+.path-track{position:relative;height:16px;background:var(--surface2);border-radius:10px}
+.path-fill{position:absolute;left:0;top:0;bottom:0;border-radius:10px;
+  background:linear-gradient(90deg,var(--accent-secondary),var(--accent-primary));transition:width .5s ease;
+  filter:drop-shadow(0 0 6px var(--accent-primary))}
+.path-knob{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:22px;
+  transition:left .5s ease;filter:drop-shadow(0 0 6px rgba(52,211,153,.6))}
+.path-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
+  margin-top:7px;font-weight:600}
+
+/* correct / incorrect split */
+.split{display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--surface2);margin:4px 0 10px}
+.split .ok{background:var(--accent);filter:drop-shadow(0 0 5px rgba(52,211,153,.5))}
+.split .no{background:var(--bad)}
+.splitrow{display:flex;gap:10px}
+.splitrow .b{flex:1;text-align:center;border-radius:12px;padding:10px 6px}
+.splitrow .b.ok{background:var(--accent-weak)}
+.splitrow .b.no{background:var(--bad-weak)}
+.splitrow .b .n{font-family:var(--font-display);font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.splitrow .b.ok .n{color:var(--accent)} .splitrow .b.no .n{color:var(--bad)}
+.splitrow .b .l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--ink2);margin-top:2px}
+
+/* per-item */
+.item{padding:13px 0;border-bottom:1px solid var(--border)}
+.item:last-child{border-bottom:0;padding-bottom:0}
+.item .top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.item .ico{font-size:16px}
+.item .name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .cnt{margin-left:auto;font-weight:700;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bartrack{height:9px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.barfill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent-secondary),var(--accent-primary));transition:width .5s;filter:drop-shadow(0 0 5px rgba(52,211,153,.45))}
+.item .acc{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:6px;align-items:center}
+.item .acc b{color:var(--accent)} .item .acc .x{color:var(--bad)}
+
+/* planner rows */
+.prow{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.prow:last-child{border-bottom:0}
+.prow .ico{font-size:18px;flex:none}
+.prow .grow{min-width:0;flex:1}
+.prow .pname{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pmeta{font-size:11px;color:var(--muted)}
+.play{border:0;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:15px;
+  width:40px;height:40px;border-radius:11px;cursor:pointer;flex:none;box-shadow:0 0 12px rgba(52,211,153,.45)}
+.chip{display:flex;align-items:center;gap:9px;background:var(--surface2);border-radius:11px;
+  padding:9px 11px;margin-bottom:8px}
+.chip .ico{font-size:16px}
+.chip .grow{min-width:0;flex:1}
+.chip .cname{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .cx{border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 4px;flex:none}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-head button{border:0;background:var(--surface2);color:var(--ink);width:34px;height:34px;
+  border-radius:9px;font-size:16px;cursor:pointer}
+.cal-title{font-weight:700;font-size:14px;text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-grid .wd{text-align:center;font-size:11px;color:var(--muted);font-weight:700;padding:2px 0}
+.cal-grid .day{aspect-ratio:1;display:grid;place-items:center;border-radius:9px;font-size:13px;
+  cursor:pointer;background:var(--surface2);color:var(--ink);user-select:none;transition:.1s}
+.cal-grid .day.empty{background:transparent;cursor:default}
+.cal-grid .day.in{background:var(--accent-weak);color:var(--accent)}
+.cal-grid .day.edge{background:var(--accent);color:var(--on-accent);font-weight:800;box-shadow:0 0 10px rgba(52,211,153,.5)}
+.cal-grid .day.today{outline:2px solid var(--accent);outline-offset:-2px}
+.period-label{text-align:center;font-size:13px;font-weight:600;color:var(--ink2);margin-top:12px}
+
+/* form */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.field input,.field select{width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface);color:var(--ink);font-size:15px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);
+  border-radius:9px;font-weight:600;font-size:13px;cursor:pointer}
+.seg button.active{background:var(--accent-weak);color:var(--accent);border-color:var(--accent)}
+.row2{display:flex;gap:10px;align-items:flex-end}.row2>*{flex:1}
+
+.btn{width:100%;border:0;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:15px;
+  padding:13px;border-radius:12px;cursor:pointer;margin-top:4px;box-shadow:0 0 16px rgba(52,211,153,.4)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent);box-shadow:none}
+.btn.sm{padding:10px;font-size:14px}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 10px}
+.tip{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.45}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="logo">🌿</span>
+    <h1>Учебный план</h1>
+    <span class="pill" id="pill">—</span>
+  </header>
+
+  <!-- DASHBOARD -->
+  <div id="view-dash">
+    <div id="dash-body"></div>
+  </div>
+
+  <!-- PLAN -->
+  <div id="view-plan" class="hide">
+    <div id="active-plan"></div>
+
+    <div class="card">
+      <h2>🗓 Новый план</h2>
+      <div class="cal-head">
+        <button onclick="calNav(-1)">‹</button>
+        <span class="cal-title" id="cal-title"></span>
+        <button onclick="calNav(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="period-label" id="period-label"></div>
+    </div>
+
+    <div class="card">
+      <h2>➕ Добавить задание</h2>
+      <div class="field">
+        <div class="seg" id="kind-seg">
+          <button data-k="quiz" class="active" onclick="setItemKind('quiz')">📚 Квиз</button>
+          <button data-k="tf" onclick="setItemKind('tf')">📇 Колода (В/Н)</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Материал</label>
+        <select id="i-material"></select>
+      </div>
+      <div class="row2">
+        <div class="field" style="margin-bottom:0">
+          <label>Интервал (раз за период)</label>
+          <input id="i-target" type="number" min="1" max="99" value="1">
+        </div>
+        <button class="btn sm" style="flex:none;width:auto;padding:11px 16px" onclick="addItem()">＋</button>
+      </div>
+    </div>
+
+    <div class="card" id="draft-card">
+      <h2>📋 Задания плана <span class="sub" id="draft-count"></span></h2>
+      <div id="draft-list"></div>
+      <button class="btn" style="margin-top:12px" onclick="savePlan()">💾 Сохранить план</button>
+      <p class="tip">Запускай задания кнопкой ▶ в разделе «Текущий план» — только так прохождение засчитается. Доводи до конца: остановка на середине не считается.</p>
+    </div>
+  </div>
+</div>
+
+<nav class="bottomnav">
+  <button id="tab-dash" class="navbtn active" onclick="showTab('dash')"><span class="ni">📊</span><span class="nl">Прогресс</span></button>
+  <button id="tab-plan" class="navbtn" onclick="showTab('plan')"><span class="ni">🗓</span><span class="nl">План</span></button>
+</nav>
+
+<script>
+const tg = window.Telegram?.WebApp;
+let BOT_USERNAME = "";
+let MATERIALS = {decks:[], quizzes:[]};
+let DASH = null, PLAN = null;
+const draft = { start:null, end:null, items:[] };
+let itemKind = "quiz";
+let apKind = "quiz";
+let calMonth = new Date(); calMonth.setDate(1);
+
+if (tg){
+  tg.ready(); tg.expand();
+  document.documentElement.setAttribute("data-theme", tg.colorScheme || "light");
+  tg.onEvent("themeChanged", ()=>document.documentElement.setAttribute("data-theme", tg.colorScheme));
+}
+
+function hdr(){ return {"Content-Type":"application/json","X-Init-Data": tg?.initData || ""}; }
+async function api(path, opts={}){
+  const r = await fetch(path, {headers:hdr(), ...opts});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+const pct = v => Math.round((v||0)*100);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ymd = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fmtd = s => { const p=String(s||"").split("-"); return p.length===3? p[2]+"."+p[1]+"."+p[0] : s; };
+
+function showTab(t){
+  document.getElementById("view-dash").classList.toggle("hide", t!=="dash");
+  document.getElementById("view-plan").classList.toggle("hide", t!=="plan");
+  document.getElementById("tab-dash").classList.toggle("active", t==="dash");
+  document.getElementById("tab-plan").classList.toggle("active", t==="plan");
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDash(){
+  const d = DASH, root = document.getElementById("dash-body"), pill = document.getElementById("pill");
+  if(!d || !d.plan){
+    pill.textContent = "—";
+    root.innerHTML = `<div class="card"><div class="empty">📭 Плана пока нет.<br>Создай его во вкладке «🗓 План».</div>
+      <button class="btn" onclick="showTab('plan')">Создать план</button></div>`;
+    return;
+  }
+  const o = d.overall, p = d.plan, P = pct(o.pct);
+  pill.textContent = P + "%";
+  const dl = p.days_left==null ? "" :
+    (p.days_left>0 ? `осталось ${p.days_left} дн` : (p.days_left===0 ? "последний день" : "период завершён"));
+  const accTxt = o.answered ? pct(o.accuracy)+"%" : "—";
+
+  let html = `
+  <div class="card hero">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Общий прогресс</div>
+    <div class="big" style="margin-top:8px">${P}<small>%</small></div>
+    <div class="sub2">пройдено ${o.done} из ${o.target}${dl?" · "+dl:""}</div>
+    <div class="path">
+      <div class="path-track"><div class="path-fill" style="width:${P}%"></div>
+        <div class="path-knob" style="left:${P}%">${P>=100?"🏁":"🚶"}</div></div>
+      <div class="path-scale"><span>${fmtd(p.start_day)}</span><span>цель ${o.target}</span><span>${fmtd(p.end_day)}</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 Ответы за период <span class="sub">точность ${accTxt}</span></h2>
+    <div class="split">
+      <div class="ok" style="width:${o.answered?pct(o.correct/o.answered):0}%"></div>
+      <div class="no" style="width:${o.answered?pct(o.incorrect/o.answered):0}%"></div>
+    </div>
+    <div class="splitrow">
+      <div class="b ok"><div class="n">${o.correct}</div><div class="l">✓ правильно</div></div>
+      <div class="b no"><div class="n">${o.incorrect}</div><div class="l">✗ неправильно</div></div>
+    </div>
+  </div>`;
+
+  if(d.items.length){
+    html += `<div class="card"><h2>📚 По заданиям</h2>` + d.items.map(it=>{
+      const ip = pct(it.pct);
+      const acc = it.answered ? pct(it.accuracy)+"%" : "—";
+      return `<div class="item">
+        <div class="top"><span class="ico">${it.kind==="tf"?"📇":"📚"}</span>
+          <span class="name">${esc(it.title)}</span>
+          <span class="cnt">${Math.min(it.done,it.target)}/${it.target} · ${ip}%</span></div>
+        <div class="bartrack"><div class="barfill" style="width:${ip}%"></div></div>
+        <div class="acc">пройдено ${it.done}× · <b>✓ ${it.correct}</b> · <span class="x">✗ ${it.incorrect}</span> · точность ${acc}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+  root.innerHTML = html;
+}
+
+/* ---------- PLAN TAB: active plan ---------- */
+function renderPlanTab(){
+  const box = document.getElementById("active-plan");
+  if(PLAN){
+    box.innerHTML = `<div class="card">
+      <h2>📌 Текущий план <span class="sub">${fmtd(PLAN.start_day)} — ${fmtd(PLAN.end_day)}</span></h2>
+      ${PLAN.items.map(it=>`<div class="prow">
+        <span class="ico">${it.kind==="tf"?"📇":"📚"}</span>
+        <div class="grow"><div class="pname">${esc(it.title)}</div>
+          <div class="pmeta">цель ${it.target}× · ${it.kind==="tf"?"тест «Верно/Неверно»":"квиз"}</div></div>
+        <button class="play" onclick="launch(${it.id})" title="Пройти с регистрацией">▶</button>
+      </div>`).join("")}
+      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:14px">
+        <h2 style="margin-bottom:12px">➕ Добавить задание в этот план</h2>
+        <div class="field">
+          <div class="seg" id="ap-kind-seg">
+            <button data-k="quiz" class="active" onclick="setApKind('quiz')">📚 Квиз</button>
+            <button data-k="tf" onclick="setApKind('tf')">📇 Колода (В/Н)</button>
+          </div>
+        </div>
+        <div class="field"><label>Материал</label><select id="ap-material"></select></div>
+        <div class="row2">
+          <div class="field" style="margin-bottom:0">
+            <label>Интервал (раз за период)</label>
+            <input id="ap-target" type="number" min="1" max="99" value="1">
+          </div>
+          <button class="btn sm" style="flex:none;width:auto;padding:11px 16px" onclick="addToPlan()">＋</button>
+        </div>
+      </div>
+      <button class="btn ghost" style="margin-top:14px" onclick="delPlan(${PLAN.id})">🗑 Удалить план</button>
+    </div>
+    <p class="tip">Добавляй задания сюда, не теряя прогресс. Создание нового плана ниже заменит текущий целиком.</p>`;
+  } else {
+    box.innerHTML = "";
+  }
+  if(PLAN) setApKind(apKind);
+  renderCal();
+  setItemKind(itemKind);
+  renderDraft();
+}
+
+/* ---------- calendar ---------- */
+const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+function renderCal(){
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  document.getElementById("cal-title").textContent =
+    calMonth.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
+  const lead=(new Date(y,m,1).getDay()+6)%7;
+  const dim=new Date(y,m+1,0).getDate();
+  const todayY=ymd(new Date());
+  let cells = WD.map(w=>`<div class="wd">${w}</div>`).join("");
+  for(let i=0;i<lead;i++) cells+=`<div class="day empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const ds=ymd(new Date(y,m,d));
+    let cls="day";
+    if(draft.start&&draft.end){
+      if(ds>=draft.start&&ds<=draft.end) cls+=(ds===draft.start||ds===draft.end)?" edge":" in";
+    } else if(draft.start&&ds===draft.start){ cls+=" edge"; }
+    if(ds===todayY) cls+=" today";
+    cells+=`<div class="${cls}" onclick="pickDay('${ds}')">${d}</div>`;
+  }
+  document.getElementById("cal-grid").innerHTML=cells;
+  const lbl=document.getElementById("period-label");
+  if(draft.start&&draft.end) lbl.textContent="✅ Период: "+fmtd(draft.start)+" — "+fmtd(draft.end);
+  else if(draft.start) lbl.textContent="Начало "+fmtd(draft.start)+" · выбери конец периода";
+  else lbl.textContent="Нажми на дату — начало периода";
+}
+function pickDay(ds){
+  if(!draft.start || (draft.start&&draft.end)){ draft.start=ds; draft.end=null; }
+  else { if(ds<draft.start) draft.start=ds; else draft.end=ds; }
+  tg?.HapticFeedback?.selectionChanged?.();
+  renderCal();
+}
+function calNav(delta){ calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+delta,1); renderCal(); }
+
+/* ---------- item builder ---------- */
+function fillMaterialSelect(selId, k){
+  const sel=document.getElementById(selId);
+  if(!sel) return;
+  const items = k==="quiz"?MATERIALS.quizzes:MATERIALS.decks;
+  sel.innerHTML = items.length
+    ? items.map(m=>`<option value="${m.id}">${esc(m.title)} (${m.count})</option>`).join("")
+    : `<option value="">— нет материалов —</option>`;
+}
+function setItemKind(k){
+  itemKind=k;
+  document.querySelectorAll("#kind-seg button").forEach(b=>b.classList.toggle("active", b.dataset.k===k));
+  fillMaterialSelect("i-material", k);
+}
+/* add task into the EXISTING active plan (no replace) */
+function setApKind(k){
+  apKind=k;
+  document.querySelectorAll("#ap-kind-seg button").forEach(b=>b.classList.toggle("active", b.dataset.k===k));
+  fillMaterialSelect("ap-material", k);
+}
+async function addToPlan(){
+  const sel=document.getElementById("ap-material");
+  if(!sel || !sel.value){ alert("Нет материалов этого типа. Создай их в боте."); return; }
+  const ref=+sel.value;
+  const title=sel.options[sel.selectedIndex].textContent.replace(/\s*\(\d+\)\s*$/,"");
+  const target=Math.max(1, +document.getElementById("ap-target").value||1);
+  if(PLAN && PLAN.items.some(it=>it.kind===apKind && it.ref_id===ref)){ alert("Это задание уже в плане."); return; }
+  try{
+    await api("/api/plan/items",{method:"POST",body:JSON.stringify(
+      {items:[{kind:apKind, ref_id:ref, title, target}]})});
+    tg?.HapticFeedback?.notificationOccurred?.("success");
+    await reloadAll();
+  }catch(e){ alert("Не удалось добавить задание."); }
+}
+function addItem(){
+  const sel=document.getElementById("i-material");
+  if(!sel.value){ alert("Нет материалов этого типа. Создай их в боте."); return; }
+  const ref=+sel.value;
+  const title=sel.options[sel.selectedIndex].textContent.replace(/\s*\(\d+\)\s*$/,"");
+  const target=Math.max(1, +document.getElementById("i-target").value||1);
+  if(draft.items.some(it=>it.kind===itemKind && it.ref_id===ref)){ alert("Это задание уже добавлено."); return; }
+  draft.items.push({kind:itemKind, ref_id:ref, title, target});
+  tg?.HapticFeedback?.impactOccurred?.("light");
+  renderDraft();
+}
+function removeItem(i){ draft.items.splice(i,1); renderDraft(); }
+function renderDraft(){
+  const list=document.getElementById("draft-list");
+  document.getElementById("draft-count").textContent = draft.items.length? draft.items.length+" шт" : "";
+  if(!draft.items.length){ list.innerHTML=`<div class="empty">Пока пусто. Добавь задания выше ☝️</div>`; return; }
+  list.innerHTML = draft.items.map((it,i)=>`<div class="chip">
+    <span class="ico">${it.kind==="tf"?"📇":"📚"}</span>
+    <div class="grow"><div class="cname">${esc(it.title)}</div>
+      <div class="pmeta">${it.kind==="tf"?"тест «Верно/Неверно»":"квиз"} · интервал ${it.target}×</div></div>
+    <button class="cx" onclick="removeItem(${i})">✕</button>
+  </div>`).join("");
+}
+async function savePlan(){
+  if(!draft.start||!draft.end){ alert("Выбери период — начало и конец."); return; }
+  if(!draft.items.length){ alert("Добавь хотя бы одно задание."); return; }
+  try{
+    await api("/api/plan",{method:"POST",body:JSON.stringify(
+      {start_day:draft.start, end_day:draft.end, items:draft.items})});
+    tg?.HapticFeedback?.notificationOccurred?.("success");
+    draft.start=draft.end=null; draft.items=[];
+    await reloadAll(); showTab("dash");
+  }catch(e){ alert("Не удалось сохранить план."); }
+}
+
+function launch(itemId){
+  const url="https://t.me/"+BOT_USERNAME+"?start=pi_"+itemId;
+  if(tg){ tg.openTelegramLink(url); tg.close(); } else location.href=url;
+}
+function delPlan(id){
+  const go = async ()=>{ try{ await api("/api/plan/delete",{method:"POST",body:JSON.stringify({id})}); await reloadAll(); }catch(e){} };
+  if(tg) tg.showConfirm("Удалить текущий план? Прогресс по нему пропадёт.", ok=>{ if(ok) go(); });
+  else if(confirm("Удалить план?")) go();
+}
+
+/* ---------- loaders ---------- */
+async function reloadAll(){
+  try{ DASH = await api("/api/dashboard"); BOT_USERNAME = DASH.bot_username || BOT_USERNAME; }
+  catch(e){ DASH=null; }
+  try{ const pr = await api("/api/plan"); PLAN = pr.plan; BOT_USERNAME = pr.bot_username || BOT_USERNAME; }
+  catch(e){ PLAN=null; }
+  renderDash(); renderPlanTab();
+}
+
+(async function init(){
+  try{ MATERIALS = await api("/api/materials"); }catch(e){}
+  await reloadAll();
+})();
+</script>
+</body>
+</html>
