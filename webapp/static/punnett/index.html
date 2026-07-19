@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор Пеннета</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..700&family=Unbounded:wght@600..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-base:#0A100D; --bg-surface:#121C18; --bg-surface-elevated:#16241F;
+  --accent-primary:#34D399; --accent-secondary:#2DD4BF;
+  --text-primary:#E8FBF2; --text-muted:#7FA396;
+  --error:#F87171; --success:var(--accent-primary);
+  --font-body:'Golos Text',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-display:'Unbounded',var(--font-body);
+  --bg:var(--bg-base); --surface:var(--bg-surface); --surface2:var(--bg-surface-elevated);
+  --border:rgba(52,211,153,.14);
+  --ink:var(--text-primary); --ink2:#A9CBBD; --muted:var(--text-muted);
+  --accent:var(--accent-primary); --accent-weak:rgba(52,211,153,.12);
+  --bad:var(--error); --bad-weak:rgba(248,113,113,.13);
+  --on-accent:#06140E;
+  --shadow:inset 0 0 0 1px rgba(52,211,153,.10), 0 10px 30px rgba(0,0,0,.45);
+  --glow:0 0 14px rgba(52,211,153,.30), 0 0 34px rgba(52,211,153,.12), inset 0 0 0 1px rgba(52,211,153,.22);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);position:relative;
+  font:15px/1.5 var(--font-body);padding:0 0 80px;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(65% 42% at 12% -4%, rgba(52,211,153,.12), transparent 70%),
+  radial-gradient(55% 40% at 104% 14%, rgba(45,212,191,.10), transparent 70%),
+  radial-gradient(90% 55% at 50% 108%, rgba(52,211,153,.07), transparent 72%)}
+h1,h2,h3{margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+header{padding:16px 0 8px;display:flex;align-items:center;gap:10px}
+header .logo{font-size:24px}
+header h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h2{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.field input,.field select{width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface);color:var(--ink);font-size:15px}
+.seg{display:flex;gap:6px}.seg button{flex:1;padding:9px;border:1px solid var(--border);
+  background:var(--surface);color:var(--ink2);border-radius:9px;font-weight:600;font-size:13px;cursor:pointer}
+.seg button.active{background:var(--accent-weak);color:var(--accent);border-color:var(--accent)}
+
+.btn{width:100%;border:0;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:15px;
+  padding:13px;border-radius:12px;cursor:pointer;margin-top:4px;box-shadow:0 0 16px rgba(52,211,153,.4)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent);box-shadow:none}
+.btn.sm{padding:10px;font-size:14px;width:auto}
+
+.hide{display:none!important}
+
+/* Punnett grid */
+.punnett-container{overflow-x:auto;margin-top:12px}
+.punnett-grid{display:grid;border-collapse:collapse;min-width:100%}
+.punnett-cell{border:1px solid var(--border);padding:8px;text-align:center;font-size:13px;min-width:60px}
+.punnett-header{background:var(--surface2);font-weight:700;color:var(--accent)}
+.punnett-prob{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Genotype keyboard */
+.kbd-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.kbd-btn{flex:1;min-width:40px;padding:10px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--ink);border-radius:8px;font-weight:700;
+  font-size:14px;cursor:pointer;text-align:center}
+.kbd-btn:active{background:var(--accent);color:var(--on-accent)}
+
+/* Results */
+.result-section{margin-top:16px}
+.prob-bar{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:6px}
+.prob-fill{height:100%;background:linear-gradient(90deg,var(--accent-secondary),var(--accent-primary))}
+
+.step-indicator{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;height:4px;background:var(--surface2);border-radius:2px}
+.step.active{background:var(--accent)}
+.step.done{background:var(--accent-primary)}
+
+input[readonly]{background:var(--surface2)}
+.error-msg{color:var(--bad);font-size:13px;margin-top:6px}
+.success-msg{color:var(--success);font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="logo">🧬</span>
+    <h1>Калькулятор Пеннета</h1>
+  </header>
+
+  <div class="step-indicator">
+    <div class="step active" id="step1"></div>
+    <div class="step" id="step2"></div>
+    <div class="step" id="step3"></div>
+    <div class="step" id="step4"></div>
+  </div>
+
+  <!-- STEP 1: Inheritance Type -->
+  <div id="step1-view" class="card">
+    <h2>📊 Тип наследования</h2>
+    <div class="field">
+      <select id="inheritance-type" onchange="onInheritanceChange()">
+        <option value="independent">Независимое (Менделевское)</option>
+        <option value="autosomal_complete">Аутосомное сцепление (полное)</option>
+        <option value="autosomal_crossover">Аутосомное сцепление (с кроссинговером)</option>
+        <option value="x_linked">X-сцепленное</option>
+        <option value="x_linked_crossover">X-сцепленное (с кроссинговером)</option>
+        <option value="y_linked">Y-сцепленное (голандрическое)</option>
+      </select>
+    </div>
+    <button class="btn" onclick="goToStep(2)">Далее →</button>
+  </div>
+
+  <!-- STEP 2: Parent Genotypes -->
+  <div id="step2-view" class="card hide">
+    <h2>👨‍👩‍👧 Генотипы родителей</h2>
+    
+    <div class="field">
+      <label>Мать (♀)</label>
+      <input type="text" id="mother-genotype" placeholder="Например: AaBb или X^AX^a" readonly onclick="openKeyboard('mother')">
+      <div class="error-msg" id="mother-error"></div>
+    </div>
+    
+    <div class="field">
+      <label>Отец (♂)</label>
+      <input type="text" id="father-genotype" placeholder="Например: AaBb или X^AY" readonly onclick="openKeyboard('father')">
+      <div class="error-msg" id="father-error"></div>
+    </div>
+
+    <!-- Virtual Keyboard -->
+    <div class="card" style="margin-top:16px">
+      <h2>⌨️ Клавиатура генотипов</h2>
+      <div class="kbd-row">
+        <button class="kbd-btn" onclick="kbdInput('A')">A</button>
+        <button class="kbd-btn" onclick="kbdInput('a')">a</button>
+        <button class="kbd-btn" onclick="kbdInput('B')">B</button>
+        <button class="kbd-btn" onclick="kbdInput('b')">b</button>
+        <button class="kbd-btn" onclick="kbdInput('C')">C</button>
+        <button class="kbd-btn" onclick="kbdInput('c')">c</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbd-btn" onclick="kbdInput('X^A')">Xᴬ</button>
+        <button class="kbd-btn" onclick="kbdInput('X^a')">Xᵃ</button>
+        <button class="kbd-btn" onclick="kbdInput('X^B')">Xᴮ</button>
+        <button class="kbd-btn" onclick="kbdInput('X^b')">Xᵇ</button>
+        <button class="kbd-btn" onclick="kbdInput('Y')">Y</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbd-btn" onclick="kbdInput('/')">/</button>
+        <button class="kbd-btn" onclick="kbdBackspace()">⌫</button>
+        <button class="kbd-btn" onclick="kbdClear()">🗑</button>
+      </div>
+      <p class="tip" style="font-size:11px;color:var(--muted);margin-top:8px">
+        Используйте / для разделения хромосом (например, AB/ab при сцеплении)
+      </p>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn ghost" onclick="goToStep(1)">← Назад</button>
+      <button class="btn" onclick="goToStep(3)">Далее →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Crossover Parameters -->
+  <div id="step3-view" class="card hide">
+    <h2>🔄 Параметры кроссинговера</h2>
+    <div class="field" id="crossover-field">
+      <label>Частота кроссинговера (%)</label>
+      <input type="number" id="crossover-rate" min="0" max="50" value="20" step="1">
+      <p class="tip" style="font-size:11px;color:var(--muted)">Обычно 10-30%. 0% = полное сцепление.</p>
+    </div>
+    
+    <div class="field" id="cis-trans-field">
+      <label>Расположение аллелей</label>
+      <div class="seg">
+        <button class="active" id="cis-btn" onclick="setConfiguration('cis')">Цис (AB/ab)</button>
+        <button id="trans-btn" onclick="setConfiguration('trans')">Транс (Ab/aB)</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn ghost" onclick="goToStep(2)">← Назад</button>
+      <button class="btn" onclick="calculate()">Рассчитать</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Results -->
+  <div id="step4-view" class="card hide">
+    <h2>📊 Решётка Пеннета</h2>
+    <div id="punnett-output"></div>
+    
+    <div class="result-section" id="gametes-output"></div>
+    <div class="result-section" id="phenotypes-output"></div>
+    <div class="result-section" id="genotypes-summary"></div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn ghost" onclick="goToStep(3)">← Назад</button>
+      <button class="btn" onclick="exportResult()">📤 Экспорт</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==================== STATE ====================
+let currentField = 'mother';
+let inheritanceType = 'independent';
+let configuration = 'cis'; // cis or trans
+let crossoverRate = 20;
+
+// ==================== TELEGRAM INIT ====================
+const tg = window.Telegram?.WebApp;
+if (tg){
+  tg.ready(); 
+  tg.expand();
+  document.documentElement.setAttribute("data-theme", tg.colorScheme || "dark");
+}
+
+// ==================== NAVIGATION ====================
+function goToStep(step){
+  // Validate before proceeding
+  if(step === 2 && !validateStep1()) return;
+  if(step === 3 && !validateStep2()) return;
+  if(step === 4) return; // Only via calculate()
+
+  // Hide all steps
+  for(let i=1; i<=4; i++){
+    document.getElementById(`step${i}-view`).classList.add('hide');
+    document.getElementById(`step${i}`).classList.remove('active', 'done');
+  }
+
+  // Show current step
+  document.getElementById(`step${step}-view`).classList.remove('hide');
+  document.getElementById(`step${step}`).classList.add('active');
+  
+  // Mark previous as done
+  for(let i=1; i<step; i++){
+    document.getElementById(`step${i}`).classList.add('done');
+  }
+
+  // Update visibility of crossover settings
+  updateCrossoverVisibility();
+}
+
+function validateStep1(){
+  inheritanceType = document.getElementById('inheritance-type').value;
+  return true;
+}
+
+function validateStep2(){
+  const mother = document.getElementById('mother-genotype').value.trim();
+  const father = document.getElementById('father-genotype').value.trim();
+  
+  let valid = true;
+  
+  if(!mother){
+    document.getElementById('mother-error').textContent = 'Введите генотип матери';
+    valid = false;
+  } else {
+    document.getElementById('mother-error').textContent = '';
+  }
+  
+  if(!father){
+    document.getElementById('father-error').textContent = 'Введите генотип отца';
+    valid = false;
+  } else {
+    document.getElementById('father-error').textContent = '';
+  }
+  
+  return valid;
+}
+
+function onInheritanceChange(){
+  inheritanceType = document.getElementById('inheritance-type').value;
+  updateCrossoverVisibility();
+}
+
+function updateCrossoverVisibility(){
+  const showCrossover = inheritanceType === 'autosomal_crossover' || 
+                        inheritanceType === 'x_linked_crossover';
+  const showConfig = inheritanceType === 'autosomal_crossover' || 
+                     inheritanceType === 'autosomal_complete';
+  
+  document.getElementById('crossover-field').classList.toggle('hide', !showCrossover);
+  document.getElementById('cis-trans-field').classList.toggle('hide', !showConfig);
+}
+
+function setConfiguration(config){
+  configuration = config;
+  document.getElementById('cis-btn').classList.toggle('active', config === 'cis');
+  document.getElementById('trans-btn').classList.toggle('active', config === 'trans');
+}
+
+// ==================== KEYBOARD ====================
+function openKeyboard(field){
+  currentField = field;
+}
+
+function kbdInput(char){
+  const input = document.getElementById(currentField + '-genotype');
+  input.value += char;
+}
+
+function kbdBackspace(){
+  const input = document.getElementById(currentField + '-genotype');
+  input.value = input.value.slice(0, -1);
+}
+
+function kbdClear(){
+  const input = document.getElementById(currentField + '-genotype');
+  input.value = '';
+}
+
+// ==================== PARSING ====================
+function parseGenotype(genotypeStr, inheritanceType){
+  // Remove whitespace
+  const str = genotypeStr.replace(/\s/g, '');
+  
+  // Check for chromosome separation
+  const hasSlash = str.includes('/');
+  
+  if(inheritanceType.includes('x_linked')){
+    return parseXLinked(str);
+  } else if(inheritanceType === 'y_linked'){
+    return parseYLinked(str);
+  } else {
+    return parseAutosomal(str, hasSlash);
+  }
+}
+
+function parseAutosomal(str, hasSlash){
+  const alleles = [];
+  
+  if(hasSlash){
+    const parts = str.split('/');
+    if(parts.length !== 2) throw new Error('Неверный формат: используйте одну / для разделения хромосом');
+    
+    // Each part should have same length
+    if(parts[0].length !== parts[1].length){
+      throw new Error('Хромосомы должны содержать одинаковое число генов');
+    }
+    
+    // Pair up alleles
+    for(let i=0; i<parts[0].length; i++){
+      alleles.push([parts[0][i], parts[1][i]]);
+    }
+  } else {
+    // Parse as consecutive pairs (AaBb -> [A,a], [B,b])
+    if(str.length % 2 !== 0){
+      throw new Error('Число аллелей должно быть чётным для аутосомных генов');
+    }
+    
+    for(let i=0; i<str.length; i+=2){
+      alleles.push([str[i], str[i+1]]);
+    }
+  }
+  
+  return {type: 'autosomal', alleles, numGenes: alleles.length};
+}
+
+function parseXLinked(str){
+  const alleles = [];
+  
+  // Count X chromosomes
+  const xCount = (str.match(/X\^?/g) || []).length;
+  
+  if(xCount === 2){
+    // Female XX
+    const matches = str.match(/X\^?([A-Za-z])/g);
+    if(matches && matches.length === 2){
+      alleles.push([matches[0].replace('X^', ''), matches[1].replace('X^', '')]);
+    }
+  } else if(xCount === 1){
+    // Could be male XY or female with one X specified
+    if(str.includes('Y')){
+      // Male XY
+      const xMatch = str.match(/X\^?([A-Za-z])/);
+      const xAllele = xMatch ? xMatch[1] : 'X';
+      alleles.push([xAllele, 'Y']);
+    } else {
+      throw new Error('Неверный формат X-сцепленного генотипа');
+    }
+  } else {
+    throw new Error('Неверное число X-хромосом');
+  }
+  
+  return {type: 'x_linked', alleles, numGenes: alleles.length, isFemale: xCount === 2};
+}
+
+function parseYLinked(str){
+  if(!str.includes('Y')){
+    throw new Error('Y-сцепленный генотип должен содержать Y-хромосому');
+  }
+  return {type: 'y_linked', alleles: [['Y']], numGenes: 1};
+}
+
+// ==================== GAMETE CALCULATION ====================
+function calculateGametes(parsedGenotype, inheritanceType, crossoverRate, configuration){
+  const {alleles, numGenes, type, isFemale} = parsedGenotype;
+  
+  if(numGenes === 0) return [];
+  
+  // Single gene -> 2 gametes
+  if(numGenes === 1){
+    if(type === 'y_linked'){
+      return [{alleles: ['Y'], probability: 1.0}];
+    }
+    if(type === 'x_linked' && !isFemale){
+      // Male XY: produces X and Y
+      return [
+        {alleles: [alleles[0][0]], probability: 0.5},
+        {alleles: ['Y'], probability: 0.5}
+      ];
+    }
+    // Standard heterozygous/homozygous
+    const [a1, a2] = alleles[0];
+    if(a1 === a2){
+      return [{alleles: [a1], probability: 1.0}];
+    } else {
+      return [
+        {alleles: [a1], probability: 0.5},
+        {alleles: [a2], probability: 0.5}
+      ];
+    }
+  }
+  
+  // Multiple genes
+  if(inheritanceType === 'independent'){
+    return calculateIndependentGametes(alleles);
+  } else if(inheritanceType === 'autosomal_complete'){
+    return calculateCompleteLinkageGametes(alleles);
+  } else if(inheritanceType === 'autosomal_crossover' || inheritanceType === 'x_linked_crossover'){
+    return calculateCrossoverGametes(alleles, crossoverRate, configuration);
+  }
+  
+  return [];
+}
+
+function calculateIndependentGametes(alleles){
+  const numGenes = alleles.length;
+  const numGametes = Math.pow(2, numGenes);
+  const probability = 1.0 / numGametes;
+  const gametes = [];
+  
+  for(let i=0; i<numGametes; i++){
+    const alleleCombo = [];
+    for(let g=0; g<numGenes; g++){
+      // Check if bit g is set
+      const alleleIndex = (i >> g) & 1;
+      alleleCombo.push(alleles[g][alleleIndex]);
+    }
+    gametes.push({alleles: alleleCombo, probability});
+  }
+  
+  return gametes;
+}
+
+function calculateCompleteLinkageGametes(alleles){
+  // Only parental types, no recombinants
+  const chromosome1 = alleles.map(a => a[0]);
+  const chromosome2 = alleles.map(a => a[1]);
+  
+  return [
+    {alleles: chromosome1, probability: 0.5},
+    {alleles: chromosome2, probability: 0.5}
+  ];
+}
+
+function calculateCrossoverGametes(alleles, crossoverRate, configuration){
+  const numGenes = alleles.length;
+  const crossoverProb = crossoverRate / 100;
+  const nonCrossoverProb = 1 - crossoverProb;
+  
+  const chromosome1 = alleles.map(a => a[0]);
+  const chromosome2 = alleles.map(a => a[1]);
+  
+  let parental1, parental2, recombinant1, recombinant2;
+  
+  if(configuration === 'cis'){
+    // AB/ab configuration
+    parental1 = [...chromosome1]; // AB
+    parental2 = [...chromosome2]; // ab
+    
+    // For 2 genes, swap one allele to create recombinants
+    if(numGenes === 2){
+      recombinant1 = [chromosome1[0], chromosome2[1]]; // Ab
+      recombinant2 = [chromosome2[0], chromosome1[1]]; // aB
+    } else {
+      // For multiple genes, more complex recombination
+      recombinant1 = [...chromosome1];
+      recombinant2 = [...chromosome2];
+      // Swap last allele
+      recombinant1[numGenes-1] = chromosome2[numGenes-1];
+      recombinant2[numGenes-1] = chromosome1[numGenes-1];
+    }
+  } else {
+    // trans configuration (Ab/aB)
+    parental1 = [...chromosome1]; // Ab
+    parental2 = [...chromosome2]; // aB
+    
+    if(numGenes === 2){
+      recombinant1 = [chromosome1[0], chromosome2[1]]; // AB
+      recombinant2 = [chromosome2[0], chromosome1[1]]; // ab
+    } else {
+      recombinant1 = [...chromosome1];
+      recombinant2 = [...chromosome2];
+      recombinant1[numGenes-1] = chromosome2[numGenes-1];
+      recombinant2[numGenes-1] = chromosome1[numGenes-1];
+    }
+  }
+  
+  const parentalProb = nonCrossoverProb / 2;
+  const recombinantProb = crossoverProb / 2;
+  
+  return [
+    {alleles: parental1, probability: parentalProb},
+    {alleles: parental2, probability: parentalProb},
+    {alleles: recombinant1, probability: recombinantProb},
+    {alleles: recombinant2, probability: recombinantProb}
+  ];
+}
+
+// ==================== PUNNETT SQUARE ====================
+function buildPunnettSquare(motherGametes, fatherGametes){
+  const grid = [];
+  
+  for(const motherGamete of motherGametes){
+    const row = [];
+    for(const fatherGamete of fatherGametes){
+      const offspring = combineGametes(motherGamete, fatherGamete);
+      const probability = motherGamete.probability * fatherGamete.probability;
+      row.push({
+        offspring,
+        probability,
+        motherGamete: motherGamete.alleles.join(''),
+        fatherGamete: fatherGamete.alleles.join('')
+      });
+    }
+    grid.push(row);
+  }
+  
+  return grid;
+}
+
+function combineGametes(mother, father){
+  const alleles = [];
+  
+  for(let i=0; i<mother.alleles.length; i++){
+    const maternalAllele = mother.alleles[i];
+    const paternalAllele = father.alleles[i] || 'Y';
+    
+    // Sort alleles (dominant first)
+    if(maternalAllele.toUpperCase() === paternalAllele.toUpperCase()){
+      alleles.push([maternalAllele, paternalAllele]);
+    } else {
+      const sorted = [maternalAllele, paternalAllele].sort((a, b) => {
+        if(a === 'Y' || b === 'Y') return a === 'Y' ? 1 : -1;
+        return b.toUpperCase() === b.charAt(0) && b === b.toUpperCase() ? -1 : 1;
+      });
+      alleles.push(sorted);
+    }
+  }
+  
+  return {alleles};
+}
+
+function aggregateGenotypes(grid){
+  const genotypeMap = new Map();
+  
+  for(const row of grid){
+    for(const cell of row){
+      const key = cell.offspring.alleles.map(a => a.sort().join('')).join('/');
+      
+      if(!genotypeMap.has(key)){
+        genotypeMap.set(key, {
+          genotype: cell.offspring,
+          probability: 0,
+          count: 0
+        });
+      }
+      
+      const entry = genotypeMap.get(key);
+      entry.probability += cell.probability;
+      entry.count++;
+    }
+  }
+  
+  return Array.from(genotypeMap.values());
+}
+
+function aggregatePhenotypes(grid, inheritanceType){
+  const phenotypeMap = new Map();
+  
+  for(const row of grid){
+    for(const cell of row){
+      const phenotype = determinePhenotype(cell.offspring, inheritanceType);
+      const key = phenotype.join('-');
+      
+      if(!phenotypeMap.has(key)){
+        phenotypeMap.set(key, {
+          phenotype,
+          probability: 0
+        });
+      }
+      
+      phenotypeMap.get(key).probability += cell.probability;
+    }
+  }
+  
+  return Array.from(phenotypeMap.values());
+}
+
+function determinePhenotype(offspring, inheritanceType){
+  const phenotype = [];
+  
+  for(const [a1, a2] of offspring.alleles){
+    if(a2 === 'Y'){
+      // Hemizygous male
+      phenotype.push(a1.toUpperCase() === a1 ? 'dominant' : 'recessive');
+    } else {
+      // Check if at least one dominant allele
+      const hasDominant = a1.toUpperCase() === a1 || a2.toUpperCase() === a2;
+      phenotype.push(hasDominant ? 'dominant' : 'recessive');
+    }
+  }
+  
+  return phenotype;
+}
+
+// ==================== RENDERING ====================
+function renderPunnettGrid(grid, motherGametes, fatherGametes){
+  const numRows = grid.length;
+  const numCols = grid[0]?.length || 0;
+  
+  let html = '<div class="punnett-container"><table class="punnett-grid">';
+  
+  // Header row
+  html += '<tr><th class="punnett-cell punnett-header">♀\\♂</th>';
+  for(const gamete of fatherGametes){
+    const pct = Math.round(gamete.probability * 100);
+    html += `<th class="punnett-cell punnett-header">${gamete.alleles.join('')}<br><span class="punnett-prob">${pct}%</span></th>`;
+  }
+  html += '</tr>';
+  
+  // Data rows
+  for(let i=0; i<numRows; i++){
+    const motherGamete = motherGametes[i];
+    const mPct = Math.round(motherGamete.probability * 100);
+    
+    html += `<tr><td class="punnett-cell punnett-header">${motherGamete.alleles.join('')}<br><span class="punnett-prob">${mPct}%</span></td>`;
+    
+    for(let j=0; j<numCols; j++){
+      const cell = grid[i][j];
+      const genotypeStr = cell.offspring.alleles.map(a => a.join('')).join('/');
+      const cellPct = Math.round(cell.probability * 100);
+      
+      html += `<td class="punnett-cell">
+        <div>${genotypeStr}</div>
+        <div class="punnett-prob">${cellPct > 0 ? cellPct : '<1'}%</div>
+      </td>`;
+    }
+    
+    html += '</tr>';
+  }
+  
+  html += '</table></div>';
+  return html;
+}
+
+function renderGametes(gametes, parent){
+  const icon = parent === 'mother' ? '♀' : '♂';
+  
+  let html = `<div class="card"><h2>${icon} Гаметы ${parent === 'mother' ? 'матери' : 'отца'}</h2>`;
+  
+  for(const gamete of gametes){
+    const pct = Math.round(gamete.probability * 100);
+    html += `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span><b>${gamete.alleles.join('')}</b></span>
+        <span>${pct}%</span>
+      </div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+function renderPhenotypes(phenotypes){
+  let html = '<div class="card"><h2>🎭 Фенотипы</h2>';
+  
+  // Sort by probability descending
+  phenotypes.sort((a, b) => b.probability - a.probability);
+  
+  for(const pheno of phenotypes){
+    const pct = Math.round(pheno.probability * 100);
+    const desc = pheno.phenotype.map(p => p === 'dominant' ? 'A_' : 'aa').join(' ');
+    
+    html += `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span><b>${desc}</b></span>
+        <span>${pct}%</span>
+      </div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+function renderGenotypesSummary(genotypes){
+  let html = '<div class="card"><h2>🧬 Генотипы</h2>';
+  
+  genotypes.sort((a, b) => b.probability - a.probability);
+  
+  for(const geno of genotypes){
+    const pct = Math.round(geno.probability * 100);
+    const genoStr = geno.genotype.alleles.map(a => a.join('')).join('/');
+    
+    html += `<div style="margin-bottom:8px;font-size:13px">
+      <span style="font-weight:600">${genoStr}</span>: ${pct}%
+    </div>`;
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+// ==================== MAIN CALCULATION ====================
+function calculate(){
+  try {
+    const motherStr = document.getElementById('mother-genotype').value.trim();
+    const fatherStr = document.getElementById('father-genotype').value.trim();
+    crossoverRate = parseInt(document.getElementById('crossover-rate').value) || 20;
+    
+    // Parse genotypes
+    const motherParsed = parseGenotype(motherStr, inheritanceType);
+    const fatherParsed = parseGenotype(fatherStr, inheritanceType);
+    
+    // Calculate gametes
+    const motherGametes = calculateGametes(motherParsed, inheritanceType, crossoverRate, configuration);
+    const fatherGametes = calculateGametes(fatherParsed, inheritanceType, crossoverRate, configuration);
+    
+    // Build Punnett square
+    const grid = buildPunnettSquare(motherGametes, fatherGametes);
+    
+    // Aggregate results
+    const genotypes = aggregateGenotypes(grid);
+    const phenotypes = aggregatePhenotypes(grid, inheritanceType);
+    
+    // Verify probabilities sum to ~100%
+    const totalProb = phenotypes.reduce((sum, p) => sum + p.probability, 0);
+    if(Math.abs(totalProb - 1.0) > 0.01){
+      console.warn(`Warning: Total probability ${totalProb} != 1.0`);
+    }
+    
+    // Render results
+    document.getElementById('punnett-output').innerHTML = renderPunnettGrid(grid, motherGametes, fatherGametes);
+    document.getElementById('gametes-output').innerHTML = 
+      renderGametes(motherGametes, 'mother') + renderGametes(fatherGametes, 'father');
+    document.getElementById('phenotypes-output').innerHTML = renderPhenotypes(phenotypes);
+    document.getElementById('genotypes-summary').innerHTML = renderGenotypesSummary(genotypes);
+    
+    goToStep(4);
+    
+  } catch(error){
+    alert('Ошибка: ' + error.message);
+    console.error(error);
+  }
+}
+
+function exportResult(){
+  if(tg){
+    tg.sendData(JSON.stringify({
+      action: 'export_punnett',
+      inheritanceType,
+      configuration,
+      crossoverRate,
+      mother: document.getElementById('mother-genotype').value,
+      father: document.getElementById('father-genotype').value
+    }));
+  } else {
+    alert('Экспорт доступен только в Telegram');
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  goToStep(1);
+});
+</script>
+</body>
+</html>
