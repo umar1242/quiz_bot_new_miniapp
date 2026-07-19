@@ -127,6 +127,7 @@ async def api_plan_delete(request: web.Request) -> web.Response:
 def create_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/", index)
+    app.router.add_get("/punnett", punnett_index)
     app.router.add_get("/api/dashboard", api_dashboard)
     app.router.add_get("/api/materials", api_materials)
     app.router.add_get("/api/plan", api_plan_get)
@@ -135,6 +136,10 @@ def create_app() -> web.Application:
     app.router.add_post("/api/plan/delete", api_plan_delete)
     app.router.add_static("/static/", _STATIC)
     return app
+
+
+async def punnett_index(request: web.Request) -> web.Response:
+    return web.FileResponse(_STATIC / "punnett" / "index.html")
 
 
 async def start_webapp() -> web.AppRunner | None:

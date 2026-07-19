@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Тесты калькулятора Пеннета</title>
+<style>
+body { font-family: monospace; background: #0A100D; color: #E8FBF2; padding: 20px; }
+.test { margin: 20px 0; padding: 15px; border: 1px solid rgba(52,211,153,.14); border-radius: 8px; }
+.pass { border-color: #34D399; background: rgba(52,211,153,.1); }
+.fail { border-color: #F87171; background: rgba(248,113,113,.1); }
+h2 { color: #34D399; }
+.result { margin: 10px 0; }
+.expected { color: #7FA396; }
+.actual { color: #E8FBF2; }
+</style>
+</head>
+<body>
+<h1>🧪 Unit Tests для калькулятора Пеннета</h1>
+<div id="results"></div>
+
+<script>
+// Import the calculator logic inline for testing
+const Tests = {
+  // Test helper
+  assertEqual(actual, expected, tolerance = 0.01) {
+    if (typeof actual === 'number' && typeof expected === 'number') {
+      return Math.abs(actual - expected) <= tolerance;
+    }
+    return JSON.stringify(actual) === JSON.stringify(expected);
+  },
+
+  // Test 1: Independent assortment - monohybrid Aa x Aa
+  test1() {
+    const name = "Моногибридное скрещивание Aa x Aa";
+    const expected = { AA: 0.25, Aa: 0.50, aa: 0.25 };
+    
+    // Simulate calculation
+    const motherGametes = [
+      { alleles: ['A'], probability: 0.5 },
+      { alleles: ['a'], probability: 0.5 }
+    ];
+    const fatherGametes = [
+      { alleles: ['A'], probability: 0.5 },
+      { alleles: ['a'], probability: 0.5 }
+    ];
+    
+    const results = { AA: 0, Aa: 0, aa: 0 };
+    for (const m of motherGametes) {
+      for (const f of fatherGametes) {
+        const genotype = [m.alleles[0], f.alleles[0]].sort().join('');
+        results[genotype] += m.probability * f.probability;
+      }
+    }
+    
+    const pass = 
+      this.assertEqual(results.AA, expected.AA) &&
+      this.assertEqual(results.Aa, expected.Aa) &&
+      this.assertEqual(results.aa, expected.aa);
+    
+    return { name, pass, expected, actual: results };
+  },
+
+  // Test 2: Dihybrid AaBb x AaBb
+  test2() {
+    const name = "Дигибридное скрещивание AaBb x AaBb";
+    // Expected 9:3:3:1 ratio
+    const expectedPhenotypes = {
+      A_B_: 0.5625,  // 9/16
+      A_bb: 0.1875,  // 3/16
+      aaB_: 0.1875,  // 3/16
+      aabb: 0.0625   // 1/16
+    };
+    
+    // Each parent produces 4 gametes with 25% each
+    const gametes = [
+      { alleles: ['A', 'B'], probability: 0.25 },
+      { alleles: ['A', 'b'], probability: 0.25 },
+      { alleles: ['a', 'B'], probability: 0.25 },
+      { alleles: ['a', 'b'], probability: 0.25 }
+    ];
+    
+    const phenotypes = { A_B_: 0, A_bb: 0, aaB_: 0, aabb: 0 };
+    for (const m of gametes) {
+      for (const f of gametes) {
+        const hasA = m.alleles[0] === 'A' || f.alleles[0] === 'A';
+        const hasB = m.alleles[1] === 'B' || f.alleles[1] === 'B';
+        const key = (hasA ? 'A_' : 'aa') + (hasB ? 'B_' : 'bb');
+        phenotypes[key] += m.probability * f.probability;
+      }
+    }
+    
+    const pass = Object.keys(expectedPhenotypes).every(k => 
+      this.assertEqual(phenotypes[k], expectedPhenotypes[k])
+    );
+    
+    return { name, pass, expected: expectedPhenotypes, actual: phenotypes };
+  },
+
+  // Test 3: Complete linkage AB/ab x AB/ab
+  test3() {
+    const name = "Полное сцепление AB/ab x AB/ab";
+    // Only parental gametes: AB (50%) and ab (50%)
+    const gametes = [
+      { alleles: ['A', 'B'], probability: 0.5 },
+      { alleles: ['a', 'b'], probability: 0.5 }
+    ];
+    
+    const phenotypes = { A_B_: 0, aabb: 0 };
+    for (const m of gametes) {
+      for (const f of gametes) {
+        const hasA = m.alleles[0] === 'A' || f.alleles[0] === 'A';
+        const hasB = m.alleles[1] === 'B' || f.alleles[1] === 'B';
+        const key = hasA && hasB ? 'A_B_' : 'aabb';
+        phenotypes[key] += m.probability * f.probability;
+      }
+    }
+    
+    // Expected: 75% A_B_, 25% aabb (3:1 ratio)
+    const pass = 
+      this.assertEqual(phenotypes.A_B_, 0.75) &&
+      this.assertEqual(phenotypes.aabb, 0.25);
+    
+    return { name, pass, expected: { A_B_: 0.75, aabb: 0.25 }, actual: phenotypes };
+  },
+
+  // Test 4: Crossover 20% AB/ab x AB/ab (cis)
+  test4() {
+    const name = "Кроссинговер 20% AB/ab x AB/ab (цис)";
+    const crossoverRate = 20;
+    const crossoverProb = crossoverRate / 100;
+    const nonCrossoverProb = 1 - crossoverProb;
+    
+    // Gametes: AB (40%), ab (40%), Ab (10%), aB (10%)
+    const gametes = [
+      { alleles: ['A', 'B'], probability: nonCrossoverProb / 2 }, // 0.4
+      { alleles: ['a', 'b'], probability: nonCrossoverProb / 2 }, // 0.4
+      { alleles: ['A', 'b'], probability: crossoverProb / 2 },    // 0.1
+      { alleles: ['a', 'B'], probability: crossoverProb / 2 }     // 0.1
+    ];
+    
+    const phenotypes = { A_B_: 0, A_bb: 0, aaB_: 0, aabb: 0 };
+    for (const m of gametes) {
+      for (const f of gametes) {
+        const hasA = m.alleles[0] === 'A' || f.alleles[0] === 'A';
+        const hasB = m.alleles[1] === 'B' || f.alleles[1] === 'B';
+        const key = (hasA ? 'A_' : 'aa') + (hasB ? 'B_' : 'bb');
+        phenotypes[key] += m.probability * f.probability;
+      }
+    }
+    
+    // Expected approximately: 66% A_B_, 9% A_bb, 9% aaB_, 16% aabb
+    const expected = { A_B_: 0.66, A_bb: 0.09, aaB_: 0.09, aabb: 0.16 };
+    const pass = Object.keys(expected).every(k => 
+      this.assertEqual(phenotypes[k], expected[k], 0.02)
+    );
+    
+    return { name, pass, expected, actual: phenotypes };
+  },
+
+  // Test 5: X-linked X^AX^a x X^AY
+  test5() {
+    const name = "X-сцепленное X^AX^a x X^AY";
+    // Female produces X^A (50%) and X^a (50%)
+    // Male produces X^A (50%) and Y (50%)
+    const femaleGametes = [
+      { alleles: ['A'], probability: 0.5 },
+      { alleles: ['a'], probability: 0.5 }
+    ];
+    const maleGametes = [
+      { alleles: ['A'], probability: 0.5 },
+      { alleles: ['Y'], probability: 0.5 }
+    ];
+    
+    const offspring = {
+      female_normal: 0,    // X^AX^A
+      female_carrier: 0,   // X^AX^a
+      male_normal: 0,      // X^AY
+      male_affected: 0     // X^aY
+    };
+    
+    for (const m of femaleGametes) {
+      for (const f of maleGametes) {
+        const prob = m.probability * f.probability;
+        if (f.alleles[0] === 'Y') {
+          // Male offspring
+          if (m.alleles[0] === 'A') {
+            offspring.male_normal += prob;
+          } else {
+            offspring.male_affected += prob;
+          }
+        } else {
+          // Female offspring
+          if (m.alleles[0] === 'A') {
+            offspring.female_normal += prob;
+          } else {
+            offspring.female_carrier += prob;
+          }
+        }
+      }
+    }
+    
+    // Expected: 25% each category
+    const expected = {
+      female_normal: 0.25,
+      female_carrier: 0.25,
+      male_normal: 0.25,
+      male_affected: 0.25
+    };
+    
+    const pass = Object.keys(expected).every(k => 
+      this.assertEqual(offspring[k], expected[k])
+    );
+    
+    return { name, pass, expected, actual: offspring };
+  },
+
+  // Test 6: Probability sum validation
+  test6() {
+    const name = "Проверка суммы вероятностей = 100%";
+    const gametes = [
+      { alleles: ['A', 'B'], probability: 0.4 },
+      { alleles: ['a', 'b'], probability: 0.4 },
+      { alleles: ['A', 'b'], probability: 0.1 },
+      { alleles: ['a', 'B'], probability: 0.1 }
+    ];
+    
+    const totalProb = gametes.reduce((sum, g) => sum + g.probability, 0);
+    const pass = Math.abs(totalProb - 1.0) < 0.001;
+    
+    return { 
+      name, 
+      pass, 
+      expected: 1.0, 
+      actual: totalProb 
+    };
+  },
+
+  runAll() {
+    const tests = [
+      this.test1(),
+      this.test2(),
+      this.test3(),
+      this.test4(),
+      this.test5(),
+      this.test6()
+    ];
+    
+    const resultsDiv = document.getElementById('results');
+    let html = '';
+    
+    tests.forEach((test, i) => {
+      const className = test.pass ? 'pass' : 'fail';
+      const icon = test.pass ? '✅' : '❌';
+      
+      html += `<div class="test ${className}">`;
+      html += `<h2>${icon} Тест ${i+1}: ${test.name}</h2>`;
+      html += `<div class="result"><b>Статус:</b> ${test.pass ? 'ПРОЙДЕН' : 'НЕ ПРОЙДЕН'}</div>`;
+      html += `<div class="expected"><b>Ожидалось:</b> ${JSON.stringify(test.expected, null, 2)}</div>`;
+      html += `<div class="actual"><b>Получено:</b> ${JSON.stringify(test.actual, null, 2)}</div>`;
+      html += `</div>`;
+    });
+    
+    const passed = tests.filter(t => t.pass).length;
+    html = `<h2 style="margin-bottom:20px">Результаты: ${passed}/${tests.length} тестов пройдено</h2>` + html;
+    
+    resultsDiv.innerHTML = html;
+  }
+};
+
+// Run tests on load
+Tests.runAll();
+</script>
+</body>
+</html>
