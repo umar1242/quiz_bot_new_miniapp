@@ -148,6 +148,9 @@ async def add_manual_question(db: AsyncSession, owner_id: int, variant_id: int, 
     if qtype not in ranges:
         raise ValueError("Неизвестный тип задания")
 
+    if qtype == "Y2" and any(q.qtype == CertQType.Y2 for q in variant.questions):
+        raise ValueError("Раздел Y2 (33–35) — это одно общее задание, оно уже создано")
+
     lo, hi = ranges[qtype]
     number = await _next_number(db, variant_id, lo, hi)
     if number is None:

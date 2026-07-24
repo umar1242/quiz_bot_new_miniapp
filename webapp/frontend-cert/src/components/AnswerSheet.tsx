@@ -25,6 +25,39 @@ export function AnswerSheet({ questions, progress, selectedId, onSelectQuestion,
 
       {SECTION_ORDER.map((qtype) => {
         const [lo, hi] = SECTION_RANGES[qtype];
+
+        // Y2 (33–35) — это одно задание-условие с 3 подвопросами и 6 общими
+        // вариантами ответа (см. Y2Editor), а не три отдельных задания.
+        // Поэтому вместо трёх кнопок 33/34/35 показываем одну кнопку на весь диапазон.
+        if (qtype === "Y2") {
+          const q = questions.find((qq) => qq.qtype === "Y2");
+          const classes = ["sheet-cell", "sheet-cell-wide"];
+          if (q?.needs_image) classes.push("needs-image");
+          else if (q) classes.push("filled");
+          if (q && q.id === selectedId) classes.push("selected");
+          if (!q) classes.push("add");
+
+          return (
+            <div className="sheet-section" key={qtype}>
+              <div className="sheet-section-head">
+                <span className="sheet-section-code">
+                  {qtype} · {lo}–{hi}
+                </span>
+                <span className="sheet-section-label">{SECTION_LABELS[qtype]}</span>
+              </div>
+              <div className="sheet-grid">
+                <button
+                  className={classes.join(" ")}
+                  onClick={() => (q ? onSelectQuestion(q) : onAddInSection(qtype))}
+                  title={q ? q.text.slice(0, 60) : "Добавить задание"}
+                >
+                  {lo}–{hi}
+                </button>
+              </div>
+            </div>
+          );
+        }
+
         const cells = [];
         for (let n = lo; n <= hi; n++) cells.push(n);
 
