@@ -25,6 +25,8 @@ from config import settings
 from db.base import AsyncSessionFactory
 from db.models import (
     Card,
+    CertVariant,
+    CertVariantStatus,
     Deck,
     Plan,
     PlanItem,
@@ -37,7 +39,7 @@ from db.models import (
 _OFFSET = timedelta(hours=settings.TZ_OFFSET_HOURS)
 
 # Тип задания плана -> какой StudyKind засчитывается как прохождение.
-_ITEM_STUDY_KIND = {"quiz": StudyKind.quiz, "tf": StudyKind.tf}
+_ITEM_STUDY_KIND = {"quiz": StudyKind.quiz, "tf": StudyKind.tf, "cert": StudyKind.cert}
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ def today_str() -> str:
 # ---------------------------------------------------------------------------
 
 async def get_materials(db: AsyncSession, user_id: int) -> dict:
-    """Колоды и квизы пользователя с количеством карточек/вопросов."""
+    """Колоды, квизы и готовые сертификационные варианты пользователя."""
     decks_res = await db.execute(
         select(Deck.id, Deck.title, func.count(Card.id))
         .outerjoin(Card, Card.deck_id == Deck.id)
@@ -73,10 +75,17 @@ async def get_materials(db: AsyncSession, user_id: int) -> dict:
         .group_by(Quiz.id, Quiz.title)
         .order_by(Quiz.created_at.desc())
     )
+    certs_res = await db.execute(
+        select(CertVariant.id, CertVariant.title)
+        .where(CertVariant.owner_id == user_id, CertVariant.status == CertVariantStatus.ready)
+        .order_by(CertVariant.created_at.desc())
+    )
     return {
         "decks":   [{"id": r[0], "title": r[1], "count": int(r[2])} for r in decks_res.all()],
         "quizzes": [{"id": r[0], "title": r[1], "count": int(r[2])} for r in quizzes_res.all()],
+        "certs":   [{"id": r[0], "title": r[1], "count": 43} for r in certs_res.all()],
     }
+
 
 
 # ---------------------------------------------------------------------------

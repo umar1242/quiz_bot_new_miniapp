@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker-compose --version)",
+      "Bash(pip3 --version)",
+      "Bash(python3 -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(docker compose *)",
+      "Read(//data/data/com.termux/files/usr/bin/**)",
+      "Bash(python3.13 --version)",
+      "Bash(psql --version)",
+      "Bash(redis-server --version)",
+      "Bash(python3 -c \"import aiogram, aiosqlite, sqlalchemy, pydantic_settings, docx, pdfminer; print\\('aiogram', aiogram.__version__\\); print\\('aiosqlite', aiosqlite.__version__\\); print\\('sqlalchemy', sqlalchemy.__version__\\); print\\('OK all imports'\\)\")",
+      "Bash(python3 -c \"import sysconfig; print\\('EXEC:', __import__\\('sys'\\).executable\\); print\\('SOABI:', sysconfig.get_config_var\\('SOABI'\\)\\); print\\('platform tag:', __import__\\('sysconfig'\\).get_platform\\(\\)\\)\")",
+      "Read(//usr/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(/usr/bin/python3 -m pip --version)",
+      "Bash(/usr/bin/python3 -c \"import ensurepip; print\\('ensurepip OK'\\)\")",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(break)",
+      "Bash(PIP_NO_INPUT=1 .venv/bin/python -m pip install -r requirements.txt)",
+      "Bash(BOT_TOKEN=dummy .venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(rm -f /tmp/i18n_test.db)",
+      "Bash(.venv/bin/python *)",
+      "Bash(ps -o pid,ppid,etime,cmd -p 30545)",
+      "Bash(ps --ppid 25825 -o pid,cmd)",
+      "Read(//root/**)",
+      "Bash(ps --ppid 25825 -o pid,ppid,etime,cmd)"
+    ]
+  }
+}

@@ -124,30 +124,70 @@ async def api_plan_delete(request: web.Request) -> web.Response:
 # Сборка и запуск
 # ---------------------------------------------------------------------------
 
-def create_app() -> web.Application:
+from webapp import cert_api, cert_attempt_api, bio_api
+from quiz_creator.api.server import generate_md_handler
+
+_STATIC = Path(__file__).parent / "static"
+_BIO_APP = _STATIC / "bio-app"
+_CERT_APP = _STATIC / "cert-app"
+_CREATOR_APP = _STATIC / "creator-app"
+
+
+async def cert_index(request: web.Request) -> web.Response:
+    index_file = _CERT_APP / "index.html"
+    if index_file.exists():
+        return web.FileResponse(index_file)
+    return web.Response(text="Cert app static not found", status=404)
+
+
+async def bio_index(request: web.Request) -> web.Response:
+    index_file = _BIO_APP / "index.html"
+    if index_file.exists():
+        return web.FileResponse(index_file)
+    return web.Response(text="Bio app static not found", status=404)
+
+
+async def creator_index(request: web.Request) -> web.Response:
+    index_file = _CREATOR_APP / "index.html"
+    if index_file.exists():
+        return web.FileResponse(index_file)
+    return web.Response(text="Creator app static not found", status=404)
+
+
+def create_app(bot=None) -> web.Application:
     app = web.Application()
+    app["bot"] = bot
+
+    # Registrations for Cert and Bio APIs
+    cert_api.register_routes(app)
+    cert_attempt_api.register_routes(app)
+    bio_api.register_routes(app)
+
     app.router.add_get("/", index)
-    app.router.add_get("/punnett", punnett_index)
+    app.router.add_get("/cert", cert_index)
+    app.router.add_get("/bio", bio_index)
+    app.router.add_get("/creator", creator_index)
+    app.router.add_post("/api/generate-md", generate_md_handler)
     app.router.add_get("/api/dashboard", api_dashboard)
     app.router.add_get("/api/materials", api_materials)
     app.router.add_get("/api/plan", api_plan_get)
     app.router.add_post("/api/plan", api_plan_save)
     app.router.add_post("/api/plan/items", api_plan_add_items)
     app.router.add_post("/api/plan/delete", api_plan_delete)
+
+    app.router.add_static("/cert-assets/", _CERT_APP / "assets", name="cert-assets")
+    app.router.add_static("/bio-assets/", _BIO_APP / "assets", name="bio-assets")
+    app.router.add_static("/creator/assets/", _CREATOR_APP / "assets", name="creator-assets")
     app.router.add_static("/static/", _STATIC)
     return app
 
 
-async def punnett_index(request: web.Request) -> web.Response:
-    return web.FileResponse(_STATIC / "punnett" / "index.html")
-
-
-async def start_webapp() -> web.AppRunner | None:
+async def start_webapp(bot=None) -> web.AppRunner | None:
     """Поднимает сервер в текущем loop. Возвращает runner для cleanup (или None)."""
     if not settings.WEBAPP_ENABLED:
         logger.info("Mini App отключён (WEBAPP_ENABLED=false)")
         return None
-    runner = web.AppRunner(create_app())
+    runner = web.AppRunner(create_app(bot))
     await runner.setup()
     site = web.TCPSite(runner, settings.WEBAPP_HOST, settings.WEBAPP_PORT)
     await site.start()

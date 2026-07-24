@@ -58,6 +58,7 @@ async def set_bot_commands(bot: Bot) -> None:
         BotCommand(command="start",      description="🏠 Главное меню / мои квизы"),
         BotCommand(command="myquiz",     description="📚 Список моих квизов"),
         BotCommand(command="flashcards", description="📇 Флешкарты / колоды"),
+        BotCommand(command="create_quiz",description="📝 Создать тест (Mini App)"),
         BotCommand(command="settings",   description="⚙️ Настройки / til"),
         BotCommand(command="stop",       description="🛑 Остановить квиз"),
         BotCommand(command="help",       description="❓ Помощь"),
@@ -106,10 +107,16 @@ async def main() -> None:
     from routers.quiz_group import router as group_router
     from routers.inline     import router as inline_router
     from routers.export     import router as export_router
+    from routers.cert       import router as cert_router
+    from routers.bio_solver import router as bio_solver_router
+    from routers.atf_calculator import router as atf_calculator_router
 
     dp.include_router(admin_router)
     dp.include_router(start_router)
     dp.include_router(planner_router)
+    dp.include_router(cert_router)
+    dp.include_router(bio_solver_router)
+    dp.include_router(atf_calculator_router)
     # deck_router — ДО creator: его file-хэндлер (в состоянии CreateDeck) должен
     # перехватывать документ раньше, чем общий F.document в creator.py
     dp.include_router(deck_router)
@@ -120,10 +127,11 @@ async def main() -> None:
     dp.include_router(inline_router)
     dp.include_router(export_router)
 
+
     # Mini App: встроенный веб-сервер + кнопка меню Telegram
     from webapp.server import start_webapp
     from webapp import runtime
-    webapp_runner = await start_webapp()
+    webapp_runner = await start_webapp(bot)
 
     async def _set_menu_button(url: str) -> None:
         from aiogram.types import MenuButtonWebApp, WebAppInfo

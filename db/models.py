@@ -6,8 +6,10 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -29,6 +31,22 @@ class UserSettings(Base):
     user_id: Mapped[int]  = mapped_column(BigInteger, primary_key=True)
     lang: Mapped[str]     = mapped_column(String(2), nullable=False, default="ru")
     banned: Mapped[bool]  = mapped_column(Boolean, nullable=False, default=False)
+
+
+class SavedCross(Base):
+    """Сохраненные скрещивания генетического калькулятора."""
+    __tablename__ = "saved_crosses"
+
+    id: Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    parent1: Mapped[str] = mapped_column(String(255), nullable=False)
+    parent2: Mapped[str] = mapped_column(String(255), nullable=False)
+    phenotypes_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
 
 
 class SessionMode(PyEnum):
@@ -217,6 +235,7 @@ class StudyKind(PyEnum):
     quiz = "quiz"   # прохождение квиза (соло)
     anki = "anki"   # изучение колоды в Anki-режиме
     tf   = "tf"     # тест «Верно/Неверно» по колоде
+    cert = "cert"   # прохождение сертификационного теста
 
 
 class GoalKind(PyEnum):
@@ -331,3 +350,214 @@ class PlanItem(Base):
     )
 
     plan: Mapped["Plan"] = relationship("Plan", back_populates="items")
+
+
+# ---------------------------------------------------------------------------
+# Сертификационные тесты (Mini App): варианты в формате нацсертификата
+# Y1 — один правильный ответ, Y2 — сопоставление, O1 — краткий открытый
+# ответ, O2 — развёрнутая письменная работа с баллами по пунктам (M/A).
+# ---------------------------------------------------------------------------
+
+class CertQType(PyEnum):
+    Y1 = "Y1"
+    Y2 = "Y2"
+    O1 = "O1"
+    O2 = "O2"
+
+
+class CertVariantStatus(PyEnum):
+    draft = "draft"
+    ready = "ready"
+
+
+class CertVariant(Base):
+    """Один вариант сертификационного теста (43 задания, 2 части)."""
+    __tablename__ = "cert_variants"
+
+    id: Mapped[int]       = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    title: Mapped[str]    = mapped_column(String(255), nullable=False, default="Вариант")
+    status: Mapped[CertVariantStatus] = mapped_column(
+        Enum(CertVariantStatus), nullable=False, default=CertVariantStatus.draft
+    )
+    # Тайминги двух частей теста (в секундах). По умолчанию — 100 и 80 минут.
+    part1_timer_sec: Mapped[int] = mapped_column(Integer, nullable=False, default=100 * 60)
+    part2_timer_sec: Mapped[int] = mapped_column(Integer, nullable=False, default=80 * 60)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    questions: Mapped[list["CertQuestion"]] = relationship(
+        "CertQuestion", back_populates="variant", cascade="all, delete-orphan",
+        order_by="CertQuestion.number",
+    )
+
+
+class CertQuestion(Base):
+    """Одно задание варианта. Часть 1 (Y1/Y2/O1, №1-40) или часть 2 (O2, №41-43)."""
+    __tablename__ = "cert_questions"
+
+    id: Mapped[int]         = mapped_column(Integer, primary_key=True)
+    variant_id: Mapped[int] = mapped_column(ForeignKey("cert_variants.id", ondelete="CASCADE"), index=True)
+    number: Mapped[int]     = mapped_column(Integer, nullable=False)   # порядковый номер 1..43
+    part: Mapped[int]       = mapped_column(Integer, nullable=False, default=1)  # 1 или 2
+    qtype: Mapped[CertQType] = mapped_column(Enum(CertQType), nullable=False)
+    text: Mapped[str]       = mapped_column(Text, nullable=False, default="")
+    points: Mapped[int]     = mapped_column(Integer, nullable=False, default=1)
+    # Выставляется парсером, если в тексте задания найден маркер рисунка —
+    # такое задание нужно доредактировать в интерфейсе mini app (загрузить рисунок).
+    needs_image: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    variant: Mapped["CertVariant"] = relationship("CertVariant", back_populates="questions")
+    options: Mapped[list["CertOption"]] = relationship(
+        "CertOption", back_populates="question", cascade="all, delete-orphan",
+        order_by="CertOption.position",
+    )
+    match_pairs: Mapped[list["CertMatchPair"]] = relationship(
+        "CertMatchPair", back_populates="question", cascade="all, delete-orphan",
+        order_by="CertMatchPair.position",
+    )
+    open_answers: Mapped[list["CertOpenAnswer"]] = relationship(
+        "CertOpenAnswer", back_populates="question", cascade="all, delete-orphan",
+        order_by="CertOpenAnswer.id",
+    )
+    bands: Mapped[list["CertBand"]] = relationship(
+        "CertBand", back_populates="question", cascade="all, delete-orphan",
+        order_by="CertBand.band_no",
+    )
+    images: Mapped[list["CertQuestionImage"]] = relationship(
+        "CertQuestionImage", back_populates="question", cascade="all, delete-orphan",
+        order_by="CertQuestionImage.position",
+    )
+
+
+class CertOption(Base):
+    """Вариант ответа Y1 (одна правильная альтернатива из 4)."""
+    __tablename__ = "cert_options"
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int]    = mapped_column(Integer, nullable=False)
+    text: Mapped[str]        = mapped_column(Text, nullable=False)
+    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    question: Mapped["CertQuestion"] = relationship("CertQuestion", back_populates="options")
+
+
+class CertMatchPair(Base):
+    """Пара для сопоставления Y2 (левый элемент ↔ правый элемент)."""
+    __tablename__ = "cert_match_pairs"
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int]    = mapped_column(Integer, nullable=False)
+    left_text: Mapped[str]   = mapped_column(Text, nullable=False)
+    right_text: Mapped[str]  = mapped_column(Text, nullable=False)
+
+    question: Mapped["CertQuestion"] = relationship("CertQuestion", back_populates="match_pairs")
+
+
+class CertOpenAnswer(Base):
+    """Эталонный(е) ответ(ы) для O1 — краткий открытый ответ, автопроверка."""
+    __tablename__ = "cert_open_answers"
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+    text: Mapped[str]        = mapped_column(Text, nullable=False)
+    # 'exact' — точное совпадение (без учёта регистра/пробелов),
+    # 'numeric' — сравнение чисел с допуском tolerance.
+    match_mode: Mapped[str]  = mapped_column(String(16), nullable=False, default="exact")
+    tolerance: Mapped[float | None] = mapped_column(nullable=True)
+
+    question: Mapped["CertQuestion"] = relationship("CertQuestion", back_populates="open_answers")
+
+
+class CertBand(Base):
+    """Пункт (band) письменной работы O2 — эталонный ответ + макс. балл."""
+    __tablename__ = "cert_bands"
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+    band_no: Mapped[int]     = mapped_column(Integer, nullable=False)
+    prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reference_answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    match_mode: Mapped[str]  = mapped_column(String(16), nullable=False, default="numeric")
+    tolerance: Mapped[float | None] = mapped_column(nullable=True)
+    max_points: Mapped[int]  = mapped_column(Integer, nullable=False, default=1)
+
+    question: Mapped["CertQuestion"] = relationship("CertQuestion", back_populates="bands")
+
+
+class CertQuestionImage(Base):
+    """Рисунок, прикреплённый к заданию через интерфейс mini app."""
+    __tablename__ = "cert_question_images"
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int]    = mapped_column(Integer, nullable=False, default=0)
+    file_path: Mapped[str]   = mapped_column(String(512), nullable=False)  # относительный путь в static/uploads
+    caption: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    question: Mapped["CertQuestion"] = relationship("CertQuestion", back_populates="images")
+
+
+class CertAttemptStatus(PyEnum):
+    part1 = "part1"        # идёт тестовая часть (Y1/Y2/O1), общий таймер
+    part2 = "part2"        # идёт письменная часть (O2), отдельный таймер
+    finished = "finished"
+
+
+class CertAttempt(Base):
+    """Попытка прохождения варианта учеником (bot user)."""
+    __tablename__ = "cert_attempts"
+
+    id: Mapped[int]         = mapped_column(Integer, primary_key=True)
+    variant_id: Mapped[int] = mapped_column(ForeignKey("cert_variants.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int]    = mapped_column(BigInteger, nullable=False, index=True)
+    status: Mapped[CertAttemptStatus] = mapped_column(Enum(CertAttemptStatus), nullable=False, default=CertAttemptStatus.part1)
+
+    part1_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    part1_deadline: Mapped[datetime]   = mapped_column(DateTime(timezone=True), nullable=False)
+    part2_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    part2_deadline: Mapped[datetime | None]   = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None]      = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Баллы считаются по мере ответа и на финализации попытки.
+    points_part1: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    points_part2: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_part1: Mapped[int]    = mapped_column(Integer, nullable=False, default=0)
+    max_part2: Mapped[int]    = mapped_column(Integer, nullable=False, default=0)
+
+    variant: Mapped["CertVariant"] = relationship("CertVariant")
+    responses: Mapped[list["CertResponse"]] = relationship(
+        "CertResponse", back_populates="attempt", cascade="all, delete-orphan",
+    )
+
+
+class CertResponse(Base):
+    """Ответ ученика на одно задание в рамках попытки."""
+    __tablename__ = "cert_responses"
+    __table_args__ = (UniqueConstraint("attempt_id", "question_id", name="uq_cert_response_attempt_question"),)
+
+    id: Mapped[int]          = mapped_column(Integer, primary_key=True)
+    attempt_id: Mapped[int]  = mapped_column(ForeignKey("cert_attempts.id", ondelete="CASCADE"), index=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("cert_questions.id", ondelete="CASCADE"), index=True)
+
+    # Универсальное хранилище ответа: для Y1 — {"option_id": int},
+    # для Y2 — {"pairs": {left_id: right_id, ...}}, для O1 — {"text": str},
+    # для O2 — {"bands": {band_id: value, ...}, "image_url": str | None}.
+    answer: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    is_correct: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None для O2 (не авто)
+    points_earned: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    points_max: Mapped[float]    = mapped_column(Float, nullable=False, default=0)
+    answered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    attempt: Mapped["CertAttempt"] = relationship("CertAttempt", back_populates="responses")
+    question: Mapped["CertQuestion"] = relationship("CertQuestion")

@@ -10,8 +10,6 @@ In-memory замена Redis — без внешнего сервера.
 Публичный интерфейс (`redis`, `ping`, хелперы, RedisKeys) совместим
 со старым кодом, поэтому остальные модули менять не нужно.
 """
-from __future__ import annotations
-
 import asyncio
 import json
 import time
