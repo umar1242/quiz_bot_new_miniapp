@@ -47,7 +47,7 @@ def questions_to_drafts(
             if opt["text"]
         ]
 
-        # Привязываем все картинки к первому вопросу
+        # Привязываем полный список картинок к каждому драфту, чтобы md_parser мог по индексу найти нужную
         draft = CertQuestionDraftDTO(
             text=q["text"],
             options=options,
@@ -55,7 +55,6 @@ def questions_to_drafts(
             images=img_list,
         )
         drafts.append(draft)
-        img_list = []  # картинки привязываются только к первому вопросу
 
     return drafts
 

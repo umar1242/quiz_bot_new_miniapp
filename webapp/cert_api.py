@@ -205,12 +205,22 @@ async def import_y1(request: web.Request) -> web.Response:
             async def on_created(question, draft):
                 # Финализируем markdown: сохраняем base64 картинки на диск, обновляем URL
                 if draft.images:
-                    finalized, rel_paths = finalize_question_md(
+                    finalized_text, rel_paths = finalize_question_md(
                         question.text, draft.images, UPLOAD_DIR, question.id
                     )
-                    if finalized != question.text:
-                        question.text = finalized
-                    for rel_path in rel_paths:
+                    if finalized_text != question.text:
+                        question.text = finalized_text
+
+                    for opt in question.options:
+                        finalized_opt, opt_rel_paths = finalize_question_md(
+                            opt.text, draft.images, UPLOAD_DIR, question.id
+                        )
+                        if finalized_opt != opt.text:
+                            opt.text = finalized_opt
+                        rel_paths.extend(opt_rel_paths)
+
+                    # Уникальные пути
+                    for rel_path in set(rel_paths):
                         try:
                             await cs.add_image(db, request["user_id"], question.id, rel_path, None)
                         except ValueError:
@@ -328,6 +338,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_delete("/api/cert/variants/{variant_id}", delete_variant)
     app.router.add_post("/api/cert/variants/{variant_id}/status", set_status)
     app.router.add_post("/api/cert/variants/{variant_id}/import-y1", import_y1)
+    app.router.add_post("/api/cert/variants/{variant_id}/import-y1-md", import_y1)
     app.router.add_post("/api/cert/variants/{variant_id}/questions", add_question)
     app.router.add_put("/api/cert/questions/{question_id}", update_question)
     app.router.add_delete("/api/cert/questions/{question_id}", delete_question)
