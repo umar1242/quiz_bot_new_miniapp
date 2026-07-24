@@ -131,6 +131,7 @@ async def main() -> None:
     # Mini App: встроенный веб-сервер + кнопка меню Telegram
     from webapp.server import start_webapp
     from webapp import runtime
+    runtime.set_bot(bot)
     webapp_runner = await start_webapp(bot)
 
     async def _set_menu_button(url: str) -> None:

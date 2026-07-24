@@ -6,11 +6,19 @@ webapp/runtime.py
 """
 from config import settings
 
-_state = {"url": ""}
+_state = {"url": "", "bot": None}
 
 
 def set_webapp_url(url: str) -> None:
     _state["url"] = url or ""
+
+
+def set_bot(bot) -> None:
+    _state["bot"] = bot
+
+
+def get_bot():
+    return _state["bot"]
 
 
 def get_webapp_url() -> str:
