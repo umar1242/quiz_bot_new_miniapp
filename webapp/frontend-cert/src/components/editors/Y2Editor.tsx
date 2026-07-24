@@ -15,12 +15,6 @@ interface Props {
 }
 
 export function Y2Editor({ pairs, y2options, onChange }: Props) {
-  // Обновить текст подвопроса
-  function updatePairLeft(i: number, value: string) {
-    const updated = pairs.map((p, idx) => (idx === i ? { ...p, left: value } : p));
-    onChange(updated, y2options);
-  }
-
   // Обновить правильный ответ подвопроса (буква A-F)
   function updatePairRight(i: number, letter: string) {
     const updated = pairs.map((p, idx) => (idx === i ? { ...p, right: letter } : p));
@@ -59,13 +53,6 @@ export function Y2Editor({ pairs, y2options, onChange }: Props) {
         {pairs.map((p, i) => (
           <div key={i} className="y2-subq-row">
             <span className="y2-subq-num">{33 + i}</span>
-            <input
-              type="text"
-              value={p.left}
-              onChange={(e) => updatePairLeft(i, e.target.value)}
-              placeholder={`Подвопрос ${i + 1}`}
-              className="y2-subq-input"
-            />
             <select
               value={p.right}
               onChange={(e) => updatePairRight(i, e.target.value)}

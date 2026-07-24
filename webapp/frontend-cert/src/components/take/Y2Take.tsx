@@ -86,7 +86,6 @@ export function Y2Take({ attemptId, question, onAnswered, onError }: Props) {
             <div key={sq.id} className="y2-subq-take">
               <div className="y2-subq-header">
                 <span className="y2-subq-num">{question.number + idx}</span>
-                <span className="y2-subq-text">{sq.text}</span>
               </div>
               <div className="y2-letters-row">
                 {LETTERS.map((letter) => {
