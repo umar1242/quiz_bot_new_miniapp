@@ -175,7 +175,7 @@ def create_app(bot=None) -> web.Application:
     app.router.add_post("/api/plan/items", api_plan_add_items)
     app.router.add_post("/api/plan/delete", api_plan_delete)
 
-    app.router.add_static("/cert-assets/", _CERT_APP / "assets", name="cert-assets")
+    app.router.add_static("/cert-app/", _CERT_APP, name="cert-app")
     app.router.add_static("/bio-assets/", _BIO_APP / "assets", name="bio-assets")
     app.router.add_static("/creator/assets/", _CREATOR_APP / "assets", name="creator-assets")
     app.router.add_static("/static/", _STATIC)
