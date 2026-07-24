@@ -8,7 +8,7 @@ interface Props {
 
 export function MarkdownText({ content, className }: Props) {
   return (
-    <div className={className ?? 'md-content'}>
+    <div className={`md-content ${className ?? ''}`.trim()}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
