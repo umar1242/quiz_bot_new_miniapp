@@ -9,6 +9,8 @@ import uuid
 from pathlib import Path
 
 from aiohttp import web
+from sqlalchemy import select
+from db.models import CertOption
 
 from config import settings
 from db.base import AsyncSessionFactory
@@ -211,7 +213,11 @@ async def import_y1(request: web.Request) -> web.Response:
                     if finalized_text != question.text:
                         question.text = finalized_text
 
-                    for opt in question.options:
+                    # Load options explicitly to avoid MissingGreenlet
+                    result = await db.execute(select(CertOption).where(CertOption.question_id == question.id))
+                    options = result.scalars().all()
+
+                    for opt in options:
                         finalized_opt, opt_rel_paths = finalize_question_md(
                             opt.text, draft.images, UPLOAD_DIR, question.id
                         )
